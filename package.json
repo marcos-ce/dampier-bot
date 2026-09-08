@@ -1,7 +1,7 @@
-﻿{
-  "name": "whatsapp-ai-foto-bot",
+{
+  "name": "dampier-bot",
   "version": "1.0.0",
-  "description": "Bot WhatsApp para geração de imagens via IA com pagamento via PIX",
+  "description": "Dampier - Bot WhatsApp para geração de imagens via IA com pagamento via PIX",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

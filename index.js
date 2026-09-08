@@ -83,7 +83,7 @@ app.get('/health', (req, res) => {
 
 // ─── Inicializacao ────────────────────────────────────────────────────────────
 async function main() {
-  console.log('\n🚀 Iniciando FotoMagica WhatsApp Bot...\n');
+  console.log('\n🚀 Iniciando Dampier WhatsApp Bot...\n');
 
   // 1. Inicia o banco de dados
   await initDatabase();

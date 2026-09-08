@@ -20,11 +20,11 @@ async function gerarPixPagamento(id_whatsapp) {
 
   const body = {
     transaction_amount: 9.99,
-    description: 'Pacote 20 Fotos com IA - FotoMagica Bot',
+    description: 'Pacote 20 Fotos com IA - Dampier Bot',
     payment_method_id: 'pix',
     payer: {
       // Email obrigatorio pelo Mercado Pago; pode ser fixo para o MVP
-      email: 'cliente@fotomagica.com',
+      email: 'cliente@dampier.tech',
     },
     // IMPORTANTE: external_reference vincula o pagamento ao usuario do WhatsApp
     // O webhook usa esse campo para saber quem creditar

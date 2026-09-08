@@ -1,7 +1,7 @@
-# 📸 FotoMagica Bot - WhatsApp AI Photo Bot
+# 📸 Dampier Bot - WhatsApp AI Photo Bot
 
 Bot de WhatsApp para geração de imagens via IA, com pagamento via PIX.
-Desenvolvido para ser simples de usar e fácil de hospedar no Railway.
+Desenvolvido para ser simples de usar e fácil de hospedar no Azure App Service.
 
 ---
 
@@ -25,15 +25,16 @@ cp .env.example .env
 ### 2. Preencha as variáveis no arquivo `.env`
 
 | Variável | Onde Obter | Exemplo |
-|----------|-----------|---------|
+|----------|-----------|---------| 
 | `MERCADO_PAGO_TOKEN` | [developers.mercadopago.com.br](https://www.mercadopago.com.br/developers/panel) > Suas Credenciais | `APP_USR-abc123...` |
 | `REPLICATE_API_TOKEN` | [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens) | `r8_abc123...` |
-| `WEBHOOK_PIX_URL` | URL do seu deploy + `/webhook-pix` | `https://meusite.tech/webhook-pix` |
+| `WEBHOOK_PIX_URL` | URL do seu deploy + `/webhook-pix` | `https://seudominio.tech/webhook-pix` |
+| `DATA_DIR` | Onde salvar banco e sessão WhatsApp | `/home/data` (Azure) |
 
 ### ⚠️ SEGURANÇA IMPORTANTE
 - **NUNCA** suba o arquivo `.env` para o GitHub
 - O `.gitignore` já está configurado para protegê-lo
-- No Railway, cadastre as variáveis no painel (sem o arquivo .env)
+- No Azure, cadastre as variáveis no painel do App Service
 
 ---
 
@@ -55,53 +56,48 @@ Abra o WhatsApp > 3 pontinhos > Aparelhos conectados > Conectar um aparelho.
 
 ---
 
-## 🚂 Deploy no Railway
+## ☁️ Deploy no Azure App Service
 
-### Passo a Passo:
+Veja o guia completo passo a passo no [walkthrough.md](./walkthrough.md).
+
+### Resumo rápido:
 
 1. **Suba o projeto para o GitHub:**
 ```bash
 git init
 git add .
-git commit -m "feat: MVP FotoMagica Bot"
-git remote add origin https://github.com/SEU-USUARIO/fotomagica-bot.git
+git commit -m "feat: MVP Dampier Bot"
+git remote add origin https://github.com/SEU-USUARIO/dampier-bot.git
 git push -u origin main
 ```
 
-2. **No Railway:**
-   - Acesse [railway.app](https://railway.app) e faça login
-   - Clique em **New Project > Deploy from GitHub repo**
-   - Selecione o repositório `fotomagica-bot`
-   - Vá em **Variables** e adicione:
-     - `MERCADO_PAGO_TOKEN`
-     - `REPLICATE_API_TOKEN`
-     - `WEBHOOK_PIX_URL` (use o domínio `.tech` que você possui)
-   - O Railway detecta o `npm start` automaticamente
+2. **No Azure App Service:**
+   - Crie um App Service (B1, Linux, Node 20, Brazil South)
+   - Adicione as variáveis de ambiente no painel
+   - Habilite WebSockets
+   - Configure o Startup Command: `bash startup.sh`
+   - Conecte o repositório GitHub via Publish Profile
 
-3. **Configure o domínio personalizado:**
-   - Em **Settings > Networking > Custom Domain**
-   - Adicione seu domínio `.tech`
-   - Configure o DNS seguindo as instruções do Railway
-
-4. **Configure o Webhook no Mercado Pago:**
-   - Acesse [Minhas Integrações](https://www.mercadopago.com.br/developers/panel)
-   - Notificações > Adicione a URL: `https://SEU-DOMINIO.tech/webhook-pix`
+3. **Deploy automático:**
+   - O GitHub Actions (`azure-deploy.yml`) faz o deploy a cada `git push` ✅
 
 ---
 
 ## 📁 Estrutura do Projeto
 
 ```
-fotomagica-bot/
-├── index.js          # Ponto de entrada - inicializa tudo
-├── bot.js            # Motor do WhatsApp (Baileys)
-├── database.js       # Banco de dados SQLite
-├── payments.js       # Integração Mercado Pago (PIX)
-├── ai_engine.js      # Integração Replicate (IA)
-├── .env.example      # Template das variáveis de ambiente
-├── .gitignore        # Arquivos ignorados pelo Git
-├── package.json      # Dependências e scripts
-└── README.md         # Esta documentação
+dampier-bot/
+├── index.js                         # Ponto de entrada - inicializa tudo
+├── bot.js                           # Motor do WhatsApp (Baileys)
+├── database.js                      # Banco de dados SQLite
+├── payments.js                      # Integração Mercado Pago (PIX)
+├── ai_engine.js                     # Integração Replicate (IA)
+├── startup.sh                       # Script de inicialização do Azure
+├── .github/workflows/azure-deploy.yml  # CI/CD automático
+├── .env.example                     # Template das variáveis de ambiente
+├── .gitignore                       # Arquivos ignorados pelo Git
+├── package.json                     # Dependências e scripts
+└── README.md                        # Esta documentação
 ```
 
 ---

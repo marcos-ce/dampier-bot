@@ -170,7 +170,7 @@ async function processarMensagem(msg, jid, id_whatsapp) {
   if (!messageContent?.imageMessage) {
     await enviarTexto(
       jid,
-      '👋 *Olá! Bem-vindo ao FotoMagica!* 🎉\n\n' +
+      '👋 *Olá! Bem-vindo ao Dampier!* 🎉\n\n' +
       '🎁 *PRESENTE DE BOAS-VINDAS:* Você ganhou *1 foto grátis!*\n\n' +
       '📸 É muito simples de usar:\n' +
       '1. *Envie uma foto sua*\n' +
