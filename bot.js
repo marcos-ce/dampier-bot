@@ -142,6 +142,22 @@ async function processarMensagem(msg, jid, id_whatsapp) {
   if (messageContent?.imageMessage) {
     console.log('[Bot] Imagem recebida de:', id_whatsapp, isAdmin ? '(ADMIN)' : '');
 
+    // Verifica saldo ANTES de aceitar a foto e pedir o estilo
+    const temCredito = isAdmin || usuario.credits > 0;
+    if (!temCredito) {
+      try {
+        await iniciarPagamento(jid, id_whatsapp);
+      } catch (err) {
+        console.error('[Bot] Erro ao gerar PIX:', err);
+        if (isAdmin) {
+          await enviarTexto(jid, `⚠️ *[ERRO ADMIN]* Falha no Mercado Pago:\n\n_${err?.message || err}_\n\nVerifique as chaves MERCADO_PAGO_TOKEN no Azure.`);
+        } else {
+          await enviarTexto(jid, '❌ Ocorreu um erro no sistema de pagamento. Tente novamente mais tarde.');
+        }
+      }
+      return;
+    }
+
     // Faz download da imagem
     const buffer = await downloadMediaMessage(msg, 'buffer', {});
     const imgPath = path.join(TEMP_DIR, `${id_whatsapp}.jpg`);
@@ -250,7 +266,11 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         await iniciarPagamento(jid, id_whatsapp);
       } catch (err) {
         console.error('[Bot] Erro ao gerar PIX:', err);
-        await enviarTexto(jid, '❌ Erro ao gerar o PIX. Por favor, tente novamente em instantes.');
+        if (isAdmin) {
+          await enviarTexto(jid, `⚠️ *[ERRO ADMIN]* Falha no Mercado Pago:\n\n_${err?.message || err}_\n\nVerifique as chaves MERCADO_PAGO_TOKEN no Azure.`);
+        } else {
+          await enviarTexto(jid, '❌ Erro ao gerar o PIX. Por favor, tente novamente em instantes.');
+        }
       }
     }
     return;
