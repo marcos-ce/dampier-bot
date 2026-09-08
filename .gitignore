@@ -1,0 +1,24 @@
+# Dependencias Node
+node_modules/
+
+# NUNCA suba o .env com suas chaves secretas!
+.env
+
+# Banco de dados SQLite (dados dos usuarios)
+*.db
+*.db-shm
+*.db-wal
+
+# Sessao do WhatsApp (QR Code ja autenticado)
+auth_info_baileys/
+
+# Fotos temporarias enviadas pelos usuarios
+temp_images/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
