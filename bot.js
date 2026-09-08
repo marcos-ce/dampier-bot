@@ -231,14 +231,8 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         console.error('[Bot] Erro ao gerar imagem na IA:', err);
         if (!isAdmin) await db.addCredits(id_whatsapp, 1);
         
-        let msgErro = '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
-                      '🎁 *Seu crédito foi devolvido!* Você não perdeu nada.\n' +
-                      'Por favor, envie sua foto novamente!';
-
-        // Se for admin, mostra o erro EXATO para sabermos se é token, saldo ou formato
-        if (isAdmin) {
-          msgErro = `⚠️ *[ERRO ADMIN]* Falha na API do Replicate:\n\n_${err?.message || err}_\n\nVerifique o token ou o saldo da sua conta no Replicate!`;
-        }
+        // Exibe o erro real para o usuário ver na tela e reportar
+        let msgErro = `⚠️ *[ERRO REPLICATE API]*\n\n_${err?.message || err}_\n\n🎁 Seu crédito foi devolvido.`;
 
         await enviarTexto(jid, msgErro);
       }
@@ -367,6 +361,12 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         `_Para criar mais fotos, envie uma foto sua! 📸_`
       );
     }
+    return;
+  }
+
+  // ── Acao E: Comando de debug (!id) ───────────────────────────────────────
+  if (textoLower === '!id') {
+    await enviarTexto(jid, `Seu ID no WhatsApp (lido pelo sistema) é:\n\n*${id_whatsapp}*\n\nAdmin flag: ${isAdmin ? 'Sim' : 'Não'}`);
     return;
   }
 
