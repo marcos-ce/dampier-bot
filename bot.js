@@ -55,9 +55,11 @@ async function startBot() {
 
   sock = makeWASocket({
     version,
-    logger: pino({ level: 'silent' }), // 'info' para debug detalhado
-    printQRInTerminal: false,           // Usamos o qrcode-terminal manualmente
+    logger: pino({ level: 'silent' }),
+    printQRInTerminal: false,
     auth: state,
+    browser: ['Ubuntu', 'Chrome', '20.0.04'], // Simula Chrome no Linux para evitar desconexão pelo WhatsApp
+    syncFullHistory: false,                   // Não baixa histórico antigo (muito mais leve e rápido)
   });
 
   // ── Eventos de conexao ────────────────────────────────────────────────────
@@ -69,10 +71,21 @@ async function startBot() {
     }
 
     if (connection === 'close') {
-      const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log('[Bot] Conexao encerrada. Reconectando?', shouldReconnect);
-      if (shouldReconnect) startBot();
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      console.log('[Bot] Conexao encerrada. Codigo:', statusCode);
+
+      if (isLoggedOut) {
+        console.log('[Bot] Sessao desconectada pelo WhatsApp. Limpando credenciais antigas...');
+        try {
+          fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+        } catch (e) {}
+        console.log('[Bot] Gerando novo QR Code limpo...');
+        setTimeout(startBot, 2000);
+      } else {
+        console.log('[Bot] Reconectando automaticamente...');
+        setTimeout(startBot, 3000);
+      }
     }
 
     if (connection === 'open') {
