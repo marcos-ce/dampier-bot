@@ -158,6 +158,17 @@ async function processarMensagem(msg, jid, id_whatsapp) {
     ''
   ).trim();
 
+  // ── Acao ADMIN: Comandos exclusivos do admin ───────────────────────────────
+  // Uso: !add 20 5511999999999  → adiciona 20 créditos ao número
+  //      !rem 5 5511999999999   → remove 5 créditos do número
+  //      !saldo 5511999999999   → consulta saldo de um número
+  //      !saldo                 → consulta seu próprio saldo
+  //      !ajuda                 → lista os comandos admin
+  if (isAdmin && texto.startsWith('!')) {
+    await processarComandoAdmin(jid, id_whatsapp, texto);
+    return;
+  }
+
   if (CHAVES_VALIDAS.includes(texto) && usuario.step === 'CHOOSE_STYLE') {
     console.log('[Bot] Estilo escolhido por', id_whatsapp, ':', texto);
 
@@ -266,6 +277,122 @@ async function iniciarPagamento(jid, id_whatsapp) {
 
 async function enviarTexto(jid, texto) {
   return sock.sendMessage(jid, { text: texto });
+}
+
+// ─── Comandos Admin ───────────────────────────────────────────────────────────
+
+async function processarComandoAdmin(jid, id_whatsapp, texto) {
+  const partes = texto.trim().split(/\s+/); // Ex: ['!add', '20', '5511999999999']
+  const cmd = partes[0].toLowerCase();
+
+  // ── !ajuda ──────────────────────────────────────────────────────────────
+  if (cmd === '!ajuda') {
+    await enviarTexto(
+      jid,
+      '👑 *Comandos Admin — Dampier Bot*\n\n' +
+      '➕ *!add [qtd] [numero]*\n' +
+      '   Adiciona créditos a um usuário\n' +
+      '   Ex: `!add 20 5511999999999`\n\n' +
+      '➖ *!rem [qtd] [numero]*\n' +
+      '   Remove créditos de um usuário\n' +
+      '   Ex: `!rem 5 5511999999999`\n\n' +
+      '💰 *!saldo [numero]*\n' +
+      '   Consulta saldo de qualquer número\n' +
+      '   Ex: `!saldo 5511999999999`\n\n' +
+      '💰 *!saldo*\n' +
+      '   Consulta seu próprio saldo\n\n' +
+      '🎁 *!presente [numero]*\n' +
+      '   Presenteia 1 crédito grátis\n' +
+      '   Ex: `!presente 5511999999999`'
+    );
+    return;
+  }
+
+  // ── !add [qtd] [numero] ─────────────────────────────────────────────────
+  if (cmd === '!add') {
+    const qtd = parseInt(partes[1]);
+    const numero = partes[2]?.replace(/\D/g, ''); // Remove tudo que não for número
+    if (!qtd || qtd <= 0 || !numero) {
+      await enviarTexto(jid, '❌ Uso correto: `!add 20 5511999999999`');
+      return;
+    }
+    await db.addCredits(numero, qtd);
+    const u = await db.getOrCreateUser(numero);
+    await enviarTexto(
+      jid,
+      `✅ *+${qtd} créditos* adicionados para *${numero}*\n` +
+      `📊 Saldo atual: *${u.credits} foto(s)*`
+    );
+    console.log(`[Admin] ${id_whatsapp} adicionou ${qtd} créditos para ${numero}`);
+    return;
+  }
+
+  // ── !rem [qtd] [numero] ─────────────────────────────────────────────────
+  if (cmd === '!rem') {
+    const qtd = parseInt(partes[1]);
+    const numero = partes[2]?.replace(/\D/g, '');
+    if (!qtd || qtd <= 0 || !numero) {
+      await enviarTexto(jid, '❌ Uso correto: `!rem 5 5511999999999`');
+      return;
+    }
+    // Remove sem deixar negativo
+    const u = await db.getOrCreateUser(numero);
+    const remover = Math.min(qtd, u.credits);
+    if (remover === 0) {
+      await enviarTexto(jid, `⚠️ *${numero}* já tem 0 créditos. Nada foi removido.`);
+      return;
+    }
+    await db.addCredits(numero, -remover);
+    const uAtual = await db.getOrCreateUser(numero);
+    await enviarTexto(
+      jid,
+      `✅ *-${remover} créditos* removidos de *${numero}*\n` +
+      `📊 Saldo atual: *${uAtual.credits} foto(s)*`
+    );
+    console.log(`[Admin] ${id_whatsapp} removeu ${remover} créditos de ${numero}`);
+    return;
+  }
+
+  // ── !saldo [numero?] ────────────────────────────────────────────────────
+  if (cmd === '!saldo') {
+    const numero = partes[1]?.replace(/\D/g, '') || id_whatsapp;
+    const u = await db.getOrCreateUser(numero);
+    await enviarTexto(
+      jid,
+      `💰 *Saldo de ${numero}*\n` +
+      `📊 Créditos: *${u.credits} foto(s)*\n` +
+      `🕐 Passo atual: ${u.step || 'IDLE'}`
+    );
+    return;
+  }
+
+  // ── !presente [numero] ──────────────────────────────────────────────────
+  if (cmd === '!presente') {
+    const numero = partes[1]?.replace(/\D/g, '');
+    if (!numero) {
+      await enviarTexto(jid, '❌ Uso correto: `!presente 5511999999999`');
+      return;
+    }
+    await db.addCredits(numero, 1);
+    const u = await db.getOrCreateUser(numero);
+    // Notifica o usuário presenteado pelo WhatsApp
+    const jidPresente = `${numero}@s.whatsapp.net`;
+    await enviarTexto(
+      jidPresente,
+      '🎁 *Você ganhou um presente!*\n\n' +
+      '✨ O Dampier te deu *1 foto grátis!*\n' +
+      'Envie uma foto sua para criar sua arte! 😊'
+    );
+    await enviarTexto(
+      jid,
+      `🎁 Presente enviado para *${numero}*!\n📊 Saldo deles agora: *${u.credits} foto(s)*`
+    );
+    console.log(`[Admin] ${id_whatsapp} presenteou ${numero} com 1 crédito`);
+    return;
+  }
+
+  // Comando desconhecido
+  await enviarTexto(jid, '❓ Comando não reconhecido. Digite `!ajuda` para ver os comandos disponíveis.');
 }
 
 // Exporta o sock para uso no webhook (index.js)
