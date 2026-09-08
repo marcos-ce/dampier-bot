@@ -41,12 +41,12 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
       input: {
         image: imageBuffer,
         prompt: prompt,
-        negative_prompt: "(lowres, low quality, worst quality:1.2), (text:1.2), watermark, painting, drawing, illustration, deformed, mutated, ugly, disfigured, blur, blurry",
-        sdxl_weights: "protovision-xl-high-fidel", // Modelo base com estilo muito realista
+        negative_prompt: "3d, cartoon, anime, caricature, exaggerated, smooth skin, plastic, CGI, painting, drawing, illustration, deformed, mutated, ugly, disfigured, blur, blurry, lowres",
+        sdxl_weights: "realvis-xl2", // Muito mais realista para rostos humanos do que o protovision
         width: 1024,
         height: 1024,
         num_inference_steps: 30,
-        guidance_scale: 5,
+        guidance_scale: 4, // Menos agressividade no prompt = mais fidelidade ao rosto
         ip_adapter_scale: 0.8,
         controlnet_conditioning_scale: 0.8,
       },

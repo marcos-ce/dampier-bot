@@ -25,11 +25,11 @@ const ESTILOS = {
 
     // Instrução em inglês para a IA — descreve roupa, cenário e iluminação
     prompt: [
-      'portrait of an elderly person wearing a formal black tuxedo',
+      'A highly realistic cinematic portrait of a person wearing a formal black tuxedo',
       'with a white dress shirt and bow tie,',
       'luxury gala dinner event background,',
       'elegant ballroom with crystal chandeliers and golden decor,',
-      'dignified and refined pose, warm smile,',
+      'dignified and refined pose, natural skin texture,',
       'cinematic studio lighting, shallow depth of field,',
       'photorealistic, ultra-detailed, 8k resolution, professional portrait photography',
     ].join(' '),
@@ -39,11 +39,11 @@ const ESTILOS = {
     label: 'Na Praia 🏖️',
 
     prompt: [
-      'portrait of an elderly person at a tropical beach',
+      'A highly realistic cinematic portrait of a person at a tropical beach',
       'wearing casual colorful summer clothes,',
       'beautiful white sand beach with crystal-clear blue ocean waves,',
       'coconut palm trees, golden hour sunlight,',
-      'relaxed and happy expression, warm natural lighting,',
+      'relaxed expression, natural skin texture, warm natural lighting,',
       'vibrant cheerful colors,',
       'photorealistic, ultra-detailed, 8k resolution, travel lifestyle photography',
     ].join(' '),
@@ -53,10 +53,10 @@ const ESTILOS = {
     label: 'Estilo Fazenda 🤠',
 
     prompt: [
-      'portrait of an elderly person dressed as a friendly country farmer,',
+      'A highly realistic cinematic portrait of a person dressed as a friendly country farmer,',
       'rustic farm background with wooden fence, green pasture fields, clear blue sky,',
       'wearing a wide brim straw hat, plaid flannel shirt, denim jeans and boots,',
-      'warm cheerful smile, golden afternoon lighting,',
+      'warm cheerful smile, natural skin texture, golden afternoon lighting,',
       'photorealistic, ultra-detailed, 8k resolution, countryside lifestyle photography',
     ].join(' '),
   },
