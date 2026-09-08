@@ -61,18 +61,20 @@ const ESTILOS = {
     ].join(' '),
   },
 
+  '4': {
+    label: 'Retrô Anos 80 📼',
+    prompt: [
+      'A highly realistic vintage 1980s polaroid photo portrait of a person,',
+      'wearing authentic 1980s retro fashion, denim jacket and colorful patterned shirt,',
+      'vintage 80s photo studio background,',
+      'retro hairstyle, natural skin texture, nostalgic mood,',
+      'film grain, light leaks, soft vintage studio lighting,',
+      'photorealistic, ultra-detailed, 8k resolution, 1980s photography',
+    ].join(' '),
+  },
+
   // ── EXEMPLOS PRONTOS PARA ADICIONAR ──────────────────────────────────────
   // Descomente (remova os // de cada linha) para ativar o estilo:
-
-  // '4': {
-  //   label: 'Astronauta 🚀',
-  //   prompt: [
-  //     'portrait of an elderly person wearing a white NASA spacesuit with helmet off,',
-  //     'space station interior background with Earth visible through the window,',
-  //     'confident and proud expression, futuristic lighting,',
-  //     'photorealistic, ultra-detailed, 8k resolution, science fiction photography',
-  //   ].join(' '),
-  // },
 
   // '5': {
   //   label: 'Pintura a Óleo 🖼️',
