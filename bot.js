@@ -127,7 +127,8 @@ async function startBot() {
 // ─── Numeros dos Admins (quem não gasta crédito e tem comandos) ─────────────
 const ADMIN_NUMBERS = [
   '5588981125331',
-  '558881125331' // Algumas contas chegam sem o 9 (nono dígito)
+  '558881125331', // Algumas contas chegam sem o 9
+  '138333061685351' // ID gerado pelo WhatsApp (visto no !id)
 ];
 
 // ─── Logica de processamento de mensagens ────────────────────────────────────
@@ -231,8 +232,14 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         console.error('[Bot] Erro ao gerar imagem na IA:', err);
         if (!isAdmin) await db.addCredits(id_whatsapp, 1);
         
-        // Exibe o erro real para o usuário ver na tela e reportar
-        let msgErro = `⚠️ *[ERRO REPLICATE API]*\n\n_${err?.message || err}_\n\n🎁 Seu crédito foi devolvido.`;
+        let msgErro = '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
+                      '🎁 *Seu crédito foi devolvido!* Você não perdeu nada.\n' +
+                      'Por favor, envie sua foto novamente!';
+
+        // Se for admin, mostra o erro EXATO
+        if (isAdmin) {
+          msgErro = `⚠️ *[ERRO ADMIN]* Falha na API do Replicate:\n\n_${err?.message || err}_\n\n🎁 Seu crédito foi devolvido.`;
+        }
 
         await enviarTexto(jid, msgErro);
       }
