@@ -49,6 +49,7 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
         guidance_scale: 4, // Menos agressividade no prompt = mais fidelidade ao rosto
         ip_adapter_scale: 0.8,
         controlnet_conditioning_scale: 0.8,
+        disable_safety_checker: true, // Evita falsos positivos de nudez que travam a geração
       },
     });
 
