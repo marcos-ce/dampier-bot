@@ -227,12 +227,17 @@ async function processarMensagem(msg, jid, id_whatsapp) {
       } catch (err) {
         console.error('[Bot] Erro ao gerar imagem na IA:', err);
         if (!isAdmin) await db.addCredits(id_whatsapp, 1);
-        await enviarTexto(
-          jid,
-          '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
-          '🎁 *Seu crédito foi devolvido!* Você não perdeu nada.\n' +
-          'Por favor, envie sua foto novamente!'
-        );
+        
+        let msgErro = '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
+                      '🎁 *Seu crédito foi devolvido!* Você não perdeu nada.\n' +
+                      'Por favor, envie sua foto novamente!';
+
+        // Se for admin, mostra o erro EXATO para sabermos se é token, saldo ou formato
+        if (isAdmin) {
+          msgErro = `⚠️ *[ERRO ADMIN]* Falha na API do Replicate:\n\n_${err?.message || err}_\n\nVerifique o token ou o saldo da sua conta no Replicate!`;
+        }
+
+        await enviarTexto(jid, msgErro);
       }
 
     } else {
