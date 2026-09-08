@@ -383,26 +383,38 @@ async function processarMensagem(msg, jid, id_whatsapp) {
     const jaIndicado = usuario.referred_by !== undefined && usuario.referred_by !== null;
     const primeiroAcesso = usuario.credits === 1 && !jaIndicado && usuario.step === 'IDLE';
 
-    await enviarTexto(
-      jid,
-      '👋 *Olá! Bem-vindo ao Dampier!* 🎉\n\n' +
-      '🎁 *PRESENTE DE BOAS-VINDAS:* Você ganhou *1 foto grátis!*\n\n' +
-      '📸 É muito simples de usar:\n' +
-      '1. *Envie uma foto sua*\n' +
-      '2. *Escolha o estilo* (1, 2 ou 3)\n' +
-      '3. *Receba sua foto transformada!* ✨\n\n' +
-      'Comece agora! Envie uma foto sua 👇'
-    );
-
-    // Só pergunta sobre indicação no primeiro acesso real
     if (primeiroAcesso) {
       await db.setUserStep(id_whatsapp, 'AWAIT_REFERRAL');
+      
       await enviarTexto(
         jid,
-        '💡 *Dica:* Alguém te indicou o Dampier?\n\n' +
-        'Se sim, me manda o *número de WhatsApp* de quem te indicou (com DDD).\n' +
-        'Vocês dois ganham *3 fotos grátis cada!* 🎁\n\n' +
-        '_Se ninguém te indicou, pode ignorar esta mensagem ou digitar "não" 😊_'
+        '👋 *Bem-vindo ao Dampier!* 🎨\n' +
+        'Transforme suas fotos com Inteligência Artificial.\n\n' +
+        '🎁 *PRESENTE:* Você acaba de ganhar *1 foto grátis!* 🎁\n\n' +
+        '📸 *Como criar sua foto:*\n' +
+        '1️⃣ Envie uma foto sua aqui no chat.\n' +
+        '2️⃣ Escolha um estilo (ex: Praia, Gala).\n' +
+        '3️⃣ Receba sua arte transformada em segundos! ✨\n\n' +
+        '💰 _Dica: Digite a palavra *saldo* a qualquer momento para ver seus créditos._'
+      );
+
+      await enviarTexto(
+        jid,
+        '🤝 *Alguém te indicou?*\n\n' +
+        'Se sim, digite agora o *código* ou o *número* da pessoa!\n' +
+        'Vocês dois ganharão *+3 fotos grátis!* 🎁\n\n' +
+        '_Se ninguém te indicou, basta ignorar e enviar sua primeira foto para começar! 📸_'
+      );
+    } else {
+      await enviarTexto(
+        jid,
+        '👋 *Olá! O Dampier está pronto para criar mais fotos.* 🎨\n\n' +
+        '📸 *Como funciona:*\n' +
+        '1️⃣ Envie uma foto sua aqui.\n' +
+        '2️⃣ Escolha o estilo desejado.\n' +
+        '3️⃣ Receba sua foto transformada! ✨\n\n' +
+        '💰 _Dica: Digite *saldo* para ver seus créditos._\n\n' +
+        '👇 *Envie uma foto sua para começar!*'
       );
     }
   }
