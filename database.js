@@ -29,10 +29,11 @@ function initDatabase() {
       db.run(
         `CREATE TABLE IF NOT EXISTS users (
           id_whatsapp  TEXT PRIMARY KEY,
-          credits      INTEGER NOT NULL DEFAULT 0,
+          credits      INTEGER NOT NULL DEFAULT 1,  -- 1 foto gratis no primeiro acesso!
           step         TEXT    NOT NULL DEFAULT 'IDLE',
           temp_image   TEXT
         )`,
+
         (err) => {
           if (err) return reject(err);
           console.log('[DB] Tabela users: OK');

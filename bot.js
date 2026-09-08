@@ -132,15 +132,25 @@ async function processarMensagem(msg, jid, id_whatsapp) {
       await db.deductCredit(id_whatsapp);
       await db.setUserStep(id_whatsapp, 'IDLE');
 
+      // Busca o saldo atualizado para informar ao usuario
+      const usuarioAtualizado = await db.getOrCreateUser(id_whatsapp);
+      const saldoRestante = usuarioAtualizado.credits;
+
       await enviarTexto(jid, '🎨 *Pintando sua foto, aguarde...* Isso leva cerca de 30 segundos!');
 
       const imageUrl = await gerarImagemEstilizada(usuario.temp_image, texto);
 
       // Envia a imagem de volta pelo WhatsApp
+      const captionSaldo =
+        saldoRestante > 0
+          ? `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *${saldoRestante} foto(s)*\n\nEnvie outra foto para criar mais estilos! 😊`
+          : `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *0 fotos*\nPara criar mais fotos, recarregue com R$ 9,99 e ganhe *20 fotos!* 💳`;
+
       await sock.sendMessage(jid, {
         image: { url: imageUrl },
-        caption: '✨ *Aqui está sua foto!* Gostou? Envie outra para criar mais estilos! 😊',
+        caption: captionSaldo,
       });
+
 
     } else {
       // Sem creditos: inicia o fluxo de pagamento
@@ -153,12 +163,13 @@ async function processarMensagem(msg, jid, id_whatsapp) {
   if (!messageContent?.imageMessage) {
     await enviarTexto(
       jid,
-      '👋 *Olá! Bem-vindo ao FotoMagica!*\n\n' +
+      '👋 *Olá! Bem-vindo ao FotoMagica!* 🎉\n\n' +
+      '🎁 *PRESENTE DE BOAS-VINDAS:* Você ganhou *1 foto grátis!*\n\n' +
       '📸 É muito simples de usar:\n' +
       '1. *Envie uma foto sua*\n' +
       '2. *Escolha o estilo* (1, 2 ou 3)\n' +
       '3. *Receba sua foto transformada!* ✨\n\n' +
-      'Comece enviando uma foto agora!'
+      'Comece agora! Envie uma foto sua 👇'
     );
   }
 }
