@@ -124,8 +124,11 @@ async function startBot() {
 }
 
 // ─── Número(s) com geração ilimitada (admin) ─────────────────────────────────
-// Esses números nunca serão cobrados e nunca perdem crédito
-const ADMIN_NUMBERS = ['5588981125331'];
+// ─── Numeros dos Admins (quem não gasta crédito e tem comandos) ─────────────
+const ADMIN_NUMBERS = [
+  '5588981125331',
+  '558881125331' // Algumas contas chegam sem o 9 (nono dígito)
+];
 
 // ─── Logica de processamento de mensagens ────────────────────────────────────
 
