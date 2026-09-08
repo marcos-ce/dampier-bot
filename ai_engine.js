@@ -13,15 +13,14 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-// Modelo SDXL oficial com suporte a img2img
-// O SDK do Replicate faz o upload do arquivo automaticamente (sem limitação de tamanho)
-const MODEL = 'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc';
+// Modelo InstantID (especialista em preservar o rosto original da pessoa)
+const MODEL = 'zsxkib/instant-id:2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
  *
  * @param {string} imagePath  - Caminho local da foto enviada pelo usuario
- * @param {string} styleKey   - '1', '2', '3'... (estilo escolhido no menu)
+ * @param {string} estilo   - '1', '2', '3'... (estilo escolhido no menu)
  * @returns {Promise<string>} - URL da imagem gerada pelo Replicate
  */
 async function gerarImagemEstilizada(imagePath, styleKey) {
@@ -32,23 +31,24 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
   const prompt = estilo.prompt;
 
-  console.log('[AI] Enviando para Replicate (SDXL img2img). Estilo:', styleKey);
+  console.log(`[AI] Iniciando geracao InstantID. Estilo: ${styleKey} | Prompt: ${prompt}`);
   console.log('[AI] Arquivo:', imagePath, '| Tamanho:', fs.statSync(imagePath).size, 'bytes');
 
   try {
-    // Passa o Buffer diretamente — o SDK do Replicate faz o upload automaticamente (até 100MB)
-    // Isso evita o limite de 1MB do base64 e é compatível com a API
     const imageBuffer = fs.readFileSync(imagePath);
 
     const output = await replicate.run(MODEL, {
       input: {
+        image: imageBuffer,
         prompt: prompt,
-        image: imageBuffer,         // Buffer direto — sem base64, sem limite de tamanho
-        prompt_strength: 0.65,      // Transforma o estilo mantendo traços do rosto
-        num_inference_steps: 25,
-        guidance_scale: 7.5,
+        negative_prompt: "(lowres, low quality, worst quality:1.2), (text:1.2), watermark, painting, drawing, illustration, deformed, mutated, ugly, disfigured, blur, blurry",
+        sdxl_weights: "protovision-xl-high-fidel", // Modelo base com estilo muito realista
         width: 1024,
         height: 1024,
+        num_inference_steps: 30,
+        guidance_scale: 5,
+        ip_adapter_scale: 0.8,
+        controlnet_conditioning_scale: 0.8,
       },
     });
 
