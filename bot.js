@@ -18,7 +18,11 @@ const path = require('path');
 const db = require('./database');
 const { gerarPixPagamento } = require('./payments');
 const { gerarImagemEstilizada } = require('./ai_engine');
-const ESTILOS = require('./prompts'); // Estilos/prompts configuráveis
+const ESTILOS = require('./prompts');
+
+// Numero do WhatsApp do bot (para montar o link de compartilhamento)
+// Formato: apenas dígitos, com DDI. Ex: 5511999999999
+const BOT_NUMBER = process.env.BOT_NUMBER || '5511999999999';
 
 // Chaves válidas geradas dinamicamente a partir dos estilos cadastrados
 // Ex: se prompts.js tem '1','2','3' => CHAVES_VALIDAS = ['1','2','3']
@@ -202,12 +206,23 @@ async function processarMensagem(msg, jid, id_whatsapp) {
           image: { url: imageUrl },
           caption: captionSaldo,
         });
+
+        // Após a foto, convida a compartilhar (apenas para não-admin)
+        if (!isAdmin) {
+          await enviarTexto(
+            jid,
+            '📲 *Quer ganhar fotos grátis?*\n\n' +
+            'Indique o Dampier para um amigo! Quando ele entrar e digitar o seu número, *vocês dois ganham 3 fotos grátis cada!* 🎁\n\n' +
+            `_Basta encaminhar esta mensagem:_\n\n` +
+            `👇 *Mensagem para copiar e enviar:*\n` +
+            `"Oi! Estou usando o *Dampier* para transformar fotos com IA 🎨\n` +
+            `Fala com o bot no WhatsApp: *${BOT_NUMBER}*\n` +
+            `Quando entrar, digita o meu número: *${id_whatsapp}* e vocês ganham fotos grátis! 📸"`
+          );
+        }
       } catch (err) {
         console.error('[Bot] Erro ao gerar imagem na IA:', err);
-        // Devolve o crédito apenas se não for admin
-        if (!isAdmin) {
-          await db.addCredits(id_whatsapp, 1);
-        }
+        if (!isAdmin) await db.addCredits(id_whatsapp, 1);
         await enviarTexto(
           jid,
           '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
@@ -228,8 +243,68 @@ async function processarMensagem(msg, jid, id_whatsapp) {
     return;
   }
 
-  // ── Mensagem nao reconhecida: envia instrucoes ─────────────────────────
+  // ── Acao C: Usuário está aguardando digitar quem o indicou ────────────────
+  if (usuario.step === 'AWAIT_REFERRAL') {
+    const numero = texto.replace(/\D/g, ''); // Extrai só os dígitos
+
+    // Qualquer coisa que não pareça número válido = pular indicação
+    if (numero.length < 8) {
+      await db.setUserStep(id_whatsapp, 'IDLE');
+      await enviarTexto(jid, '👍 Tudo bem! Pode enviar uma foto sua para começar! 📸');
+      return;
+    }
+
+    // Verifica se o indicador existe no banco
+    const indicador = await db.getOrCreateUser(numero);
+    if (!indicador || numero === id_whatsapp) {
+      await db.setUserStep(id_whatsapp, 'IDLE');
+      await enviarTexto(jid, '❌ Número não encontrado. Mas não tem problema! Envie uma foto para começar 📸');
+      return;
+    }
+
+    // Verifica se já foi indicado antes
+    if (usuario.referred_by) {
+      await db.setUserStep(id_whatsapp, 'IDLE');
+      await enviarTexto(jid, '⚠️ Você já foi indicado anteriormente. Envie uma foto para começar! 📸');
+      return;
+    }
+
+    // Registra a indicação e credita ambos
+    await db.setReferredBy(id_whatsapp, numero);
+    await db.setUserStep(id_whatsapp, 'IDLE');
+    await db.addCredits(id_whatsapp, 3);        // Novo usuário ganha +3
+    await db.addCredits(numero, 3);             // Quem indicou ganha +3
+    await db.addReferralCount(numero);
+
+    // Notifica o novo usuário
+    const usuarioComBonus = await db.getOrCreateUser(id_whatsapp);
+    await enviarTexto(
+      jid,
+      `🎉 *Indicação confirmada!*\n\n` +
+      `Você e *${numero}* ganharam *3 fotos grátis cada!* 🎁\n\n` +
+      `📊 Seu saldo agora: *${usuarioComBonus.credits} foto(s)*\n\n` +
+      `Agora envie uma foto sua para começar! 📸`
+    );
+
+    // Notifica quem indicou
+    const jidIndicador = `${numero}@s.whatsapp.net`;
+    await enviarTexto(
+      jidIndicador,
+      `🎉 *Sua indicação funcionou!*\n\n` +
+      `Um amigo acabou de entrar com o seu número!\n` +
+      `*+3 fotos grátis* foram adicionadas à sua conta! 🎁`
+    );
+
+    console.log(`[Referral] ${id_whatsapp} indicado por ${numero}. Ambos +3 créditos.`);
+    return;
+  }
+
+  // ── Mensagem nao reconhecida: boas-vindas + pergunta sobre indicação ────────
   if (!messageContent?.imageMessage) {
+    // Verifica se já foi indicado ou já passou pelo fluxo de boas-vindas
+    const jaIndicado = usuario.referred_by !== undefined && usuario.referred_by !== null;
+    const primeiroAcesso = usuario.credits === 1 && !jaIndicado && usuario.step === 'IDLE';
+
     await enviarTexto(
       jid,
       '👋 *Olá! Bem-vindo ao Dampier!* 🎉\n\n' +
@@ -240,6 +315,18 @@ async function processarMensagem(msg, jid, id_whatsapp) {
       '3. *Receba sua foto transformada!* ✨\n\n' +
       'Comece agora! Envie uma foto sua 👇'
     );
+
+    // Só pergunta sobre indicação no primeiro acesso real
+    if (primeiroAcesso) {
+      await db.setUserStep(id_whatsapp, 'AWAIT_REFERRAL');
+      await enviarTexto(
+        jid,
+        '💡 *Dica:* Alguém te indicou o Dampier?\n\n' +
+        'Se sim, me manda o *número de WhatsApp* de quem te indicou (com DDD).\n' +
+        'Vocês dois ganham *3 fotos grátis cada!* 🎁\n\n' +
+        '_Se ninguém te indicou, pode ignorar esta mensagem ou digitar "não" 😊_'
+      );
+    }
   }
 }
 

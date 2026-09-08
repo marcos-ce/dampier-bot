@@ -73,7 +73,13 @@ function initDatabase() {
         (err) => {
           if (err) return reject(err);
           console.log('[DB] Tabela transactions: OK');
-          resolve(db);
+
+          // Adiciona colunas de indicação (seguro em banco existente)
+          db.run(`ALTER TABLE users ADD COLUMN referred_by TEXT DEFAULT NULL`, () => {});
+          db.run(`ALTER TABLE users ADD COLUMN referrals_given INTEGER DEFAULT 0`, () => {
+            console.log('[DB] Colunas de indicacao: OK');
+            resolve(db);
+          });
         }
       );
     });
@@ -170,6 +176,28 @@ function getTransaction(id_pagamento) {
   });
 }
 
+/** Registra quem indicou o usuario (só pode ser definido 1 vez) */
+function setReferredBy(id_whatsapp, referrer_number) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `UPDATE users SET referred_by = ? WHERE id_whatsapp = ? AND referred_by IS NULL`,
+      [referrer_number, id_whatsapp],
+      (err) => { if (err) return reject(err); resolve(); }
+    );
+  });
+}
+
+/** Incrementa o contador de indicações bem-sucedidas do indicador */
+function addReferralCount(id_whatsapp) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `UPDATE users SET referrals_given = referrals_given + 1 WHERE id_whatsapp = ?`,
+      [id_whatsapp],
+      (err) => { if (err) return reject(err); resolve(); }
+    );
+  });
+}
+
 module.exports = {
   initDatabase,
   getOrCreateUser,
@@ -179,4 +207,6 @@ module.exports = {
   addCredits,
   saveTransaction,
   getTransaction,
+  setReferredBy,
+  addReferralCount,
 };
