@@ -4,8 +4,13 @@ require('dotenv').config();
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// O arquivo do banco fica na raiz do projeto
-const DB_PATH = path.join(__dirname, 'bot_database.db');
+// DATA_DIR: define onde o banco e arquivos persistentes ficam.
+// - Local (seu PC):  usa a pasta do projeto (__dirname)
+// - Azure App Service: defina DATA_DIR=/home/data no painel de variaveis
+// O WAL mode melhora estabilidade no filesystem de rede do Azure.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const DB_PATH  = path.join(DATA_DIR, 'bot_database.db');
+
 
 // Variavel global da conexao
 let db;
@@ -16,6 +21,13 @@ let db;
  */
 function initDatabase() {
   return new Promise((resolve, reject) => {
+    // Garante que a pasta DATA_DIR existe (importante no Azure na 1a execucao)
+    const fs = require('fs');
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      console.log('[DB] Pasta criada:', DATA_DIR);
+    }
+
     db = new sqlite3.Database(DB_PATH, (err) => {
       if (err) {
         console.error('[DB] Erro ao conectar ao SQLite:', err.message);
@@ -25,7 +37,11 @@ function initDatabase() {
     });
 
     db.serialize(() => {
-      // Tabela de usuarios
+      // WAL mode: melhora estabilidade em filesystems de rede (Azure /home)
+      db.run('PRAGMA journal_mode=WAL;');
+      db.run('PRAGMA synchronous=NORMAL;');
+
+
       db.run(
         `CREATE TABLE IF NOT EXISTS users (
           id_whatsapp  TEXT PRIMARY KEY,

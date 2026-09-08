@@ -19,9 +19,16 @@ const db = require('./database');
 const { gerarPixPagamento } = require('./payments');
 const { gerarImagemEstilizada } = require('./ai_engine');
 
-// Pasta para salvar as fotos temporarias dos usuarios
-const TEMP_DIR = path.join(__dirname, 'temp_images');
+// DATA_DIR: mesmo valor configurado no database.js
+// Garante que auth e imagens ficam no mesmo disco persistente do SQLite
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const AUTH_DIR = path.join(DATA_DIR, 'auth_info_baileys');
+const TEMP_DIR = path.join(DATA_DIR, 'temp_images');
+
+// Cria as pastas se nao existirem (necessario na 1a execucao no Azure)
+if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+
 
 // Socket global do Baileys (usado pelo webhook para enviar mensagens)
 let sock;
@@ -32,7 +39,7 @@ let sock;
  * Apos escanear, a sessao fica salva em auth_info_baileys/
  */
 async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
   sock = makeWASocket({

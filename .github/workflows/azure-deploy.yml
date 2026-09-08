@@ -1,0 +1,43 @@
+# ============================================================
+# GitHub Actions - Deploy automatico no Azure App Service
+# ============================================================
+# Como funciona:
+#   1. Voce faz push para a branch 'main' no GitHub
+#   2. Este workflow roda automaticamente
+#   3. Instala dependencias e publica no Azure App Service
+#
+# Pre-requisito: adicionar os secrets no GitHub (veja README.md)
+#   - AZURE_WEBAPP_NAME: nome do seu App Service
+#   - AZURE_WEBAPP_PUBLISH_PROFILE: conteudo do arquivo baixado do Azure
+# ============================================================
+
+name: Deploy no Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias de producao
+        run: npm ci --omit=dev
+
+      - name: Deploy para Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
