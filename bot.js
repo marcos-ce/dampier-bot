@@ -18,6 +18,17 @@ const path = require('path');
 const db = require('./database');
 const { gerarPixPagamento } = require('./payments');
 const { gerarImagemEstilizada } = require('./ai_engine');
+const ESTILOS = require('./prompts'); // Estilos/prompts configuráveis
+
+// Chaves válidas geradas dinamicamente a partir dos estilos cadastrados
+// Ex: se prompts.js tem '1','2','3' => CHAVES_VALIDAS = ['1','2','3']
+const CHAVES_VALIDAS = Object.keys(ESTILOS);
+
+// Monta o texto do menu automaticamente baseado nos estilos cadastrados
+// Ao adicionar estilo '4' em prompts.js, ele aparece aqui sem mais alterações
+const MENU_ESTILOS = CHAVES_VALIDAS
+  .map((k) => `${k}️⃣ ${ESTILOS[k].label}`)
+  .join('\n');
 
 // DATA_DIR: mesmo valor configurado no database.js
 // Garante que auth e imagens ficam no mesmo disco persistente do SQLite
@@ -117,21 +128,19 @@ async function processarMensagem(msg, jid, id_whatsapp) {
     await enviarTexto(
       jid,
       '📸 *Foto recebida!* Responda com o *número* do estilo desejado:\n\n' +
-      '1️⃣ Roupa de Gala 👔\n' +
-      '2️⃣ Na Praia 🏖️\n' +
-      '3️⃣ Estilo Fazenda 🤠'
+      MENU_ESTILOS
     );
     return;
   }
 
-  // ── Acao B: Usuário enviou um NUMERO (1, 2 ou 3) ──────────────────────
+  // ── Acao B: Usuário enviou um NUMERO valido ────────────────────────────────
   const texto = (
     messageContent?.conversation ||
     messageContent?.extendedTextMessage?.text ||
     ''
   ).trim();
 
-  if (['1', '2', '3'].includes(texto) && usuario.step === 'CHOOSE_STYLE') {
+  if (CHAVES_VALIDAS.includes(texto) && usuario.step === 'CHOOSE_STYLE') {
     console.log('[Bot] Estilo escolhido por', id_whatsapp, ':', texto);
 
     if (usuario.credits > 0) {

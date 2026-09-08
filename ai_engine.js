@@ -5,54 +5,35 @@ const Replicate = require('replicate');
 const fs = require('fs');
 const path = require('path');
 
+// Importa os estilos/prompts do arquivo de configuração central
+// Para adicionar ou editar estilos, edite apenas o arquivo: prompts.js
+const ESTILOS = require('./prompts');
+
 // Inicializa o cliente do Replicate com o token do .env
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
 // Modelo SDXL Lightning (rapido, 4 passos, alta qualidade)
-// Voce pode trocar por outro modelo no Replicate se preferir
+// Outros modelos disponíveis em: https://replicate.com/explore
 const MODEL =
   'lucataco/sdxl-lightning-4step:727e49a643e999d602a896c774a0658ffefea21465756a6ce24b7ea4165fffb3';
-
-// ─── Prompts dos estilos ────────────────────────────────────────────────────
-// Cada prompt e otimizado para manter o rosto do usuario e mudar o ambiente/roupa
-const STYLE_PROMPTS = {
-  '1': [
-    'portrait of an elderly person wearing a formal black tuxedo with a white dress shirt and bow tie,',
-    'luxury gala dinner event background, elegant ballroom with crystal chandeliers and golden decor,',
-    'dignified and refined pose, warm smile, cinematic studio lighting, shallow depth of field,',
-    'photorealistic, ultra-detailed, 8k resolution, professional portrait photography',
-  ].join(' '),
-
-  '2': [
-    'portrait of an elderly person at a tropical beach wearing casual colorful summer clothes,',
-    'beautiful white sand beach with crystal-clear blue ocean waves, coconut palm trees, golden hour sunlight,',
-    'relaxed and happy expression, warm natural lighting, vibrant cheerful colors,',
-    'photorealistic, ultra-detailed, 8k resolution, travel lifestyle photography',
-  ].join(' '),
-
-  '3': [
-    'portrait of an elderly person dressed as a friendly country farmer or cowboy,',
-    'rustic farm background with wooden fence, green pasture fields, clear blue sky,',
-    'wearing a wide brim straw hat, plaid flannel shirt, denim jeans and boots,',
-    'warm cheerful smile, golden afternoon lighting,',
-    'photorealistic, ultra-detailed, 8k resolution, countryside lifestyle photography',
-  ].join(' '),
-};
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
  *
  * @param {string} imagePath  - Caminho local da foto enviada pelo usuario
- * @param {string} styleKey   - '1', '2' ou '3' (estilo escolhido no menu)
+ * @param {string} styleKey   - '1', '2', '3'... (estilo escolhido no menu)
  * @returns {Promise<string>} - URL da imagem gerada pelo Replicate
  */
 async function gerarImagemEstilizada(imagePath, styleKey) {
-  const prompt = STYLE_PROMPTS[styleKey];
-  if (!prompt) {
+  const estilo = ESTILOS[styleKey];
+  if (!estilo) {
     throw new Error('Estilo invalido: ' + styleKey);
   }
+
+  const prompt = estilo.prompt;
+
 
   // Le a foto e converte para base64 (necessario para enviar ao Replicate)
   const imageBuffer = fs.readFileSync(imagePath);
