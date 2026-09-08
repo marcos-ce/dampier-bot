@@ -36,14 +36,14 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
   console.log('[AI] Arquivo:', imagePath, '| Tamanho:', fs.statSync(imagePath).size, 'bytes');
 
   try {
-    // Passa o arquivo diretamente como stream — o SDK do Replicate faz o upload automaticamente
-    // Isso evita o limite de 1MB do base64 e é muito mais rápido
-    const imageStream = fs.createReadStream(imagePath);
+    // Passa o Buffer diretamente — o SDK do Replicate faz o upload automaticamente (até 100MB)
+    // Isso evita o limite de 1MB do base64 e é compatível com a API
+    const imageBuffer = fs.readFileSync(imagePath);
 
     const output = await replicate.run(MODEL, {
       input: {
         prompt: prompt,
-        image: imageStream,         // Stream direto — sem base64, sem limite de tamanho
+        image: imageBuffer,         // Buffer direto — sem base64, sem limite de tamanho
         prompt_strength: 0.65,      // Transforma o estilo mantendo traços do rosto
         num_inference_steps: 25,
         guidance_scale: 7.5,
