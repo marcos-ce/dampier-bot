@@ -44,12 +44,14 @@ function initDatabase() {
 
       db.run(
         `CREATE TABLE IF NOT EXISTS users (
-          id_whatsapp  TEXT PRIMARY KEY,
-          credits      INTEGER NOT NULL DEFAULT 1,  -- 1 foto gratis no primeiro acesso!
-          step         TEXT    NOT NULL DEFAULT 'IDLE',
-          temp_image   TEXT
+          id_whatsapp       TEXT PRIMARY KEY,
+          credits           INTEGER NOT NULL DEFAULT 1,
+          step              TEXT    NOT NULL DEFAULT 'IDLE',
+          temp_image        TEXT,
+          referred_by       TEXT    DEFAULT NULL,
+          referrals_given   INTEGER DEFAULT 0,
+          photos_generated  INTEGER DEFAULT 0
         )`,
-
         (err) => {
           if (err) return reject(err);
           console.log('[DB] Tabela users: OK');
@@ -74,10 +76,11 @@ function initDatabase() {
           if (err) return reject(err);
           console.log('[DB] Tabela transactions: OK');
 
-          // Adiciona colunas de indicação (seguro em banco existente)
+          // Adiciona colunas (seguro em banco existente — falha silenciosamente se já existir)
           db.run(`ALTER TABLE users ADD COLUMN referred_by TEXT DEFAULT NULL`, () => {});
-          db.run(`ALTER TABLE users ADD COLUMN referrals_given INTEGER DEFAULT 0`, () => {
-            console.log('[DB] Colunas de indicacao: OK');
+          db.run(`ALTER TABLE users ADD COLUMN referrals_given INTEGER DEFAULT 0`, () => {});
+          db.run(`ALTER TABLE users ADD COLUMN photos_generated INTEGER DEFAULT 0`, () => {
+            console.log('[DB] Colunas de indicacao e historico: OK');
             resolve(db);
           });
         }
@@ -198,6 +201,41 @@ function addReferralCount(id_whatsapp) {
   });
 }
 
+/** Incrementa o contador de fotos geradas */
+function incrementPhotos(id_whatsapp) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `UPDATE users SET photos_generated = photos_generated + 1 WHERE id_whatsapp = ?`,
+      [id_whatsapp],
+      (err) => { if (err) return reject(err); resolve(); }
+    );
+  });
+}
+
+/**
+ * Retorna um resumo dos créditos do usuário:
+ * saldo atual, fotos geradas, pagamentos PIX, indicações dadas e de quem veio
+ */
+function getResumoCreditos(id_whatsapp) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT
+         u.credits,
+         u.photos_generated,
+         u.referrals_given,
+         u.referred_by,
+         COUNT(t.id_pagamento) AS pix_pagos
+       FROM users u
+       LEFT JOIN transactions t
+         ON t.id_whatsapp = u.id_whatsapp AND t.status = 'approved'
+       WHERE u.id_whatsapp = ?
+       GROUP BY u.id_whatsapp`,
+      [id_whatsapp],
+      (err, row) => { if (err) return reject(err); resolve(row); }
+    );
+  });
+}
+
 module.exports = {
   initDatabase,
   getOrCreateUser,
@@ -209,4 +247,6 @@ module.exports = {
   getTransaction,
   setReferredBy,
   addReferralCount,
+  incrementPhotos,
+  getResumoCreditos,
 };

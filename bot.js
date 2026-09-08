@@ -207,6 +207,9 @@ async function processarMensagem(msg, jid, id_whatsapp) {
           caption: captionSaldo,
         });
 
+        // Contabiliza a foto gerada no histórico
+        if (!isAdmin) await db.incrementPhotos(id_whatsapp);
+
         // Após a foto, convida a compartilhar (apenas para não-admin)
         if (!isAdmin) {
           await enviarTexto(
@@ -296,6 +299,38 @@ async function processarMensagem(msg, jid, id_whatsapp) {
     );
 
     console.log(`[Referral] ${id_whatsapp} indicado por ${numero}. Ambos +3 créditos.`);
+    return;
+  }
+
+  // ── Acao D: Usuário quer ver seu extrato ──────────────────────────────────
+  // Detecta palavras-chave naturais: "saldo", "credito", "minha conta", "extrato"
+  const textoLower = texto.toLowerCase();
+  const querVerSaldo = ['saldo', 'credito', 'crédito', 'conta', 'extrato', 'meus creditos', 'minhas fotos']
+    .some((kw) => textoLower.includes(kw));
+
+  if (querVerSaldo && usuario.step === 'IDLE') {
+    const resumo = await db.getResumoCreditos(id_whatsapp);
+    if (resumo) {
+      const origemLinhas = [];
+      if (resumo.pix_pagos > 0)
+        origemLinhas.push(`💳 Pacotes comprados via PIX: *${resumo.pix_pagos}x* (${resumo.pix_pagos * 20} fotos)`);
+      if (resumo.referred_by)
+        origemLinhas.push(`🤝 Indicado por: *${resumo.referred_by}* (+3 fotos)`);
+      if (resumo.referrals_given > 0)
+        origemLinhas.push(`🎁 Amigos que você indicou: *${resumo.referrals_given}* (+${resumo.referrals_given * 3} fotos)`);
+      if (origemLinhas.length === 0)
+        origemLinhas.push('🎁 Foto de boas-vindas: *1 foto grátis*');
+
+      await enviarTexto(
+        jid,
+        `📊 *Sua conta no Dampier*\n\n` +
+        `💰 *Saldo atual:* ${resumo.credits} foto(s)\n` +
+        `📸 *Fotos geradas:* ${resumo.photos_generated}\n\n` +
+        `📋 *Origem dos seus créditos:*\n` +
+        origemLinhas.join('\n') + '\n\n' +
+        `_Para criar mais fotos, envie uma foto sua! 📸_`
+      );
+    }
     return;
   }
 
