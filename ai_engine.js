@@ -13,14 +13,16 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-// Modelo InstantID (especialista em preservar o rosto original da pessoa)
-const MODEL = 'zsxkib/instant-id:2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789';
+// Modelo face-to-many — especialista em transformar rosto de uma pessoa em qualquer estilo.
+// Muito mais estável e realista que o InstantID para este caso de uso.
+// Documentação: https://replicate.com/fofr/face-to-many
+const MODEL = 'fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
  *
  * @param {string} imagePath  - Caminho local da foto enviada pelo usuario
- * @param {string} estilo   - '1', '2', '3'... (estilo escolhido no menu)
+ * @param {string} styleKey   - '1', '2', '3'... (estilo escolhido no menu)
  * @returns {Promise<string>} - URL da imagem gerada pelo Replicate
  */
 async function gerarImagemEstilizada(imagePath, styleKey) {
@@ -31,7 +33,7 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
   const prompt = estilo.prompt;
 
-  console.log(`[AI] Iniciando geracao InstantID. Estilo: ${styleKey} | Prompt: ${prompt}`);
+  console.log(`[AI] Iniciando geracao face-to-many. Estilo: ${styleKey} | Prompt: ${prompt}`);
   console.log('[AI] Arquivo:', imagePath, '| Tamanho:', fs.statSync(imagePath).size, 'bytes');
 
   try {
@@ -41,26 +43,24 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
       input: {
         image: imageBuffer,
         prompt: prompt,
-        negative_prompt: "3d, cartoon, anime, caricature, exaggerated, smooth skin, plastic, CGI, painting, drawing, illustration, deformed, mutated, ugly, disfigured, blur, blurry, lowres",
-        sdxl_weights: "juggernaut-xl-v8", // Modelo excelente para hiper-realismo e texturas de pele reais
-        width: 1024,
-        height: 1024,
-        num_inference_steps: 30,
-        guidance_scale: 4, // Menos agressividade no prompt = mais fidelidade ao rosto
-        ip_adapter_scale: 0.8,
-        controlnet_conditioning_scale: 0.8,
-        disable_safety_checker: true, // Evita falsos positivos de nudez que travam a geração
+        negative_prompt: "3d render, cartoon, anime, caricature, plastic, CGI, painting, drawing, illustration, deformed, ugly, disfigured, blurry, lowres, extra limbs",
+        style: 'Photographic', // Força o modo fotográfico (mais realista)
+        number_of_images: 1,
+        guidance_scale: 7.5,
+        ip_adapter_scale: 0.8, // Fidelidade ao rosto: 0.8 é o ponto ideal entre rosto e estilo
+        lcm_num_inference_steps: 6, // Steps do LCM — bem mais rápido que o DDIM do InstantID
+        disable_safety_checker: true, // Evita falsos positivos que travam a geração
       },
     });
 
     // O Replicate retorna um array de URLs ou um FileOutput
     let imageUrl;
     if (Array.isArray(output)) {
-      imageUrl = typeof output[0] === 'string' ? output[0] : output[0]?.url?.();
+      imageUrl = typeof output[0] === 'string' ? output[0] : await output[0]?.url?.();
     } else if (typeof output === 'string') {
       imageUrl = output;
     } else {
-      imageUrl = output?.url?.() || String(output);
+      imageUrl = await output?.url?.() || String(output);
     }
 
     if (!imageUrl) throw new Error('Replicate não retornou URL de imagem');
