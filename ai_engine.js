@@ -42,7 +42,7 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
         image: imageBuffer,
         prompt: prompt,
         negative_prompt: "3d, cartoon, anime, caricature, exaggerated, smooth skin, plastic, CGI, painting, drawing, illustration, deformed, mutated, ugly, disfigured, blur, blurry, lowres",
-        sdxl_weights: "realvis-xl2", // Muito mais realista para rostos humanos do que o protovision
+        sdxl_weights: "juggernaut-xl-v8", // Modelo excelente para hiper-realismo e texturas de pele reais
         width: 1024,
         height: 1024,
         num_inference_steps: 30,
