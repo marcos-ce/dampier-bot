@@ -212,15 +212,16 @@ async function processarMensagem(msg, jid, id_whatsapp) {
 
         // Após a foto, convida a compartilhar (apenas para não-admin)
         if (!isAdmin) {
+          const codigoCurto = id_whatsapp.slice(-4); // Últimos 4 dígitos = código de indicação
           await enviarTexto(
             jid,
-            '📲 *Quer ganhar fotos grátis?*\n\n' +
-            'Indique o Dampier para um amigo! Quando ele entrar e digitar o seu número, *vocês dois ganham 3 fotos grátis cada!* 🎁\n\n' +
-            `_Basta encaminhar esta mensagem:_\n\n` +
-            `👇 *Mensagem para copiar e enviar:*\n` +
-            `"Oi! Estou usando o *Dampier* para transformar fotos com IA 🎨\n` +
-            `Fala com o bot no WhatsApp: *${BOT_NUMBER}*\n` +
-            `Quando entrar, digita o meu número: *${id_whatsapp}* e vocês ganham fotos grátis! 📸"`
+            `📲 *Quer ganhar fotos grátis?*\n\n` +
+            `Compartilhe o Dampier! Seu código de indicação é: *${codigoCurto}*\n\n` +
+            `Quando um amigo entrar no bot e digitar *${codigoCurto}*, vocês dois ganham *3 fotos grátis!* 🎁\n\n` +
+            `👇 *Encaminhe esta mensagem para seus amigos:*\n` +
+            `"Oi! Uso o *Dampier* pra transformar fotos com IA — fica incrível! 🎨\n` +
+            `Salva este número e manda 'oi': *${BOT_NUMBER}*\n` +
+            `Quando entrar, digita meu código *${codigoCurto}* e ganham 3 fotos grátis! 📸"`
           );
         }
       } catch (err) {
@@ -248,57 +249,84 @@ async function processarMensagem(msg, jid, id_whatsapp) {
 
   // ── Acao C: Usuário está aguardando digitar quem o indicou ────────────────
   if (usuario.step === 'AWAIT_REFERRAL') {
-    const numero = texto.replace(/\D/g, ''); // Extrai só os dígitos
-
-    // Qualquer coisa que não pareça número válido = pular indicação
-    if (numero.length < 8) {
+    // Palavras de recusa → pula a indicação normalmente
+    const recusas = ['nao', 'não', 'n', 'nope', 'skip', 'pular', 'nenhum', 'ninguen', 'ninguem'];
+    if (recusas.some((r) => texto.toLowerCase().includes(r))) {
       await db.setUserStep(id_whatsapp, 'IDLE');
       await enviarTexto(jid, '👍 Tudo bem! Pode enviar uma foto sua para começar! 📸');
       return;
     }
 
-    // Verifica se o indicador existe no banco
-    const indicador = await db.getOrCreateUser(numero);
-    if (!indicador || numero === id_whatsapp) {
+    const digitosDigitados = texto.replace(/\D/g, '');
+
+    // Precisa ter pelo menos 4 dígitos para tentar buscar
+    if (digitosDigitados.length < 4) {
       await db.setUserStep(id_whatsapp, 'IDLE');
-      await enviarTexto(jid, '❌ Número não encontrado. Mas não tem problema! Envie uma foto para começar 📸');
+      await enviarTexto(jid, '👍 Tudo bem! Pode enviar uma foto sua para começar! 📸');
       return;
     }
 
-    // Verifica se já foi indicado antes
+    // Verifica se já foi indicado antes (trava anti-abuso)
     if (usuario.referred_by) {
       await db.setUserStep(id_whatsapp, 'IDLE');
-      await enviarTexto(jid, '⚠️ Você já foi indicado anteriormente. Envie uma foto para começar! 📸');
+      await enviarTexto(jid, '⚠️ Você já usou um código de indicação antes. Envie uma foto para começar! 📸');
       return;
     }
 
-    // Registra a indicação e credita ambos
-    await db.setReferredBy(id_whatsapp, numero);
-    await db.setUserStep(id_whatsapp, 'IDLE');
-    await db.addCredits(id_whatsapp, 3);        // Novo usuário ganha +3
-    await db.addCredits(numero, 3);             // Quem indicou ganha +3
-    await db.addReferralCount(numero);
+    // Tenta encontrar o indicador pelo código digitado
+    // Aceita: últimos 4 dígitos (código curto) OU número completo
+    const resultado = await db.getReferrerByCode(digitosDigitados, id_whatsapp);
 
-    // Notifica o novo usuário
+    if (resultado.collision) {
+      // Colisão: dois usuários com mesmo final — pede mais dígitos
+      await enviarTexto(
+        jid,
+        '⚠️ Esse código está repetido entre dois amigos!\n\n' +
+        'Peça para seu amigo te mandar mais dígitos do número dele (ex: os últimos 6 ou 8 dígitos) e tente novamente 😊'
+      );
+      return; // Mantém no step AWAIT_REFERRAL para o usuário tentar de novo
+    }
+
+    if (!resultado.found) {
+      // Código não encontrado — pode ter digitado errado ou o amigo ainda não entrou no bot
+      await db.setUserStep(id_whatsapp, 'IDLE');
+      await enviarTexto(
+        jid,
+        '❌ Código não encontrado.\n\n' +
+        'Pode ser que seu amigo ainda não tenha usado o bot.\n' +
+        'Sem problema! Você pode enviar uma foto para começar 📸'
+      );
+      return;
+    }
+
+    const numeroIndicador = resultado.user.id_whatsapp;
+
+    // Registra a indicação e credita ambos
+    await db.setReferredBy(id_whatsapp, numeroIndicador);
+    await db.setUserStep(id_whatsapp, 'IDLE');
+    await db.addCredits(id_whatsapp, 3);
+    await db.addCredits(numeroIndicador, 3);
+    await db.addReferralCount(numeroIndicador);
+
+    const codigoExibido = numeroIndicador.slice(-4); // Exibe só os 4 últimos ao confirmar
     const usuarioComBonus = await db.getOrCreateUser(id_whatsapp);
     await enviarTexto(
       jid,
       `🎉 *Indicação confirmada!*\n\n` +
-      `Você e *${numero}* ganharam *3 fotos grátis cada!* 🎁\n\n` +
+      `Você usou o código de *${codigoExibido}* e ambos ganharam *3 fotos grátis!* 🎁\n\n` +
       `📊 Seu saldo agora: *${usuarioComBonus.credits} foto(s)*\n\n` +
       `Agora envie uma foto sua para começar! 📸`
     );
 
-    // Notifica quem indicou
-    const jidIndicador = `${numero}@s.whatsapp.net`;
+    const jidIndicador = `${numeroIndicador}@s.whatsapp.net`;
     await enviarTexto(
       jidIndicador,
       `🎉 *Sua indicação funcionou!*\n\n` +
-      `Um amigo acabou de entrar com o seu número!\n` +
+      `Alguém usou seu código e entrou no Dampier!\n` +
       `*+3 fotos grátis* foram adicionadas à sua conta! 🎁`
     );
 
-    console.log(`[Referral] ${id_whatsapp} indicado por ${numero}. Ambos +3 créditos.`);
+    console.log(`[Referral] ${id_whatsapp} usou código de ${numeroIndicador}. Ambos +3 créditos.`);
     return;
   }
 

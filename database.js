@@ -236,6 +236,28 @@ function getResumoCreditos(id_whatsapp) {
   });
 }
 
+/**
+ * Busca o indicador pelo código curto (últimos N dígitos do número).
+ * Retorna:
+ *   { found: true,  user: row }   → único match
+ *   { found: false, collision: true } → mais de um usuário com o mesmo código
+ *   { found: false, collision: false } → nenhum usuário encontrado
+ */
+function getReferrerByCode(code, excludeNumber) {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT id_whatsapp FROM users WHERE id_whatsapp LIKE ? AND id_whatsapp != ?`,
+      [`%${code}`, excludeNumber],
+      (err, rows) => {
+        if (err) return reject(err);
+        if (!rows || rows.length === 0) return resolve({ found: false, collision: false });
+        if (rows.length > 1)          return resolve({ found: false, collision: true });
+        resolve({ found: true, user: rows[0] });
+      }
+    );
+  });
+}
+
 module.exports = {
   initDatabase,
   getOrCreateUser,
@@ -249,4 +271,5 @@ module.exports = {
   addReferralCount,
   incrementPhotos,
   getResumoCreditos,
+  getReferrerByCode,
 };
