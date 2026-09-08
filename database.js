@@ -56,6 +56,12 @@ function initDatabase() {
         }
       );
 
+      // Garante que a tabela users tenha crédito para o primeiro acesso
+      db.run(
+        `UPDATE users SET credits = 1 WHERE credits = 0;`,
+        (err) => { if (!err) console.log('[DB] Bonus de primeiro acesso verificado.'); }
+      );
+
       // Tabela de transacoes (pagamentos PIX)
       db.run(
         `CREATE TABLE IF NOT EXISTS transactions (
@@ -76,12 +82,13 @@ function initDatabase() {
 
 // ─── Funcoes auxiliares ───────────────────────────────────────────────────────
 
-/** Busca o usuario ou cria um novo registro se for a primeira mensagem */
+/** Busca o usuario ou cria um novo registro com 1 crédito grátis se for a primeira mensagem */
 function getOrCreateUser(id_whatsapp) {
   return new Promise((resolve, reject) => {
     db.run(
-      `INSERT OR IGNORE INTO users (id_whatsapp) VALUES (?)`,
+      `INSERT OR IGNORE INTO users (id_whatsapp, credits) VALUES (?, 1)`,
       [id_whatsapp],
+
       (err) => {
         if (err) return reject(err);
         db.get(

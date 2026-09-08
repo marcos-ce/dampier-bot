@@ -3,6 +3,8 @@
 require('dotenv').config();
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 
+const { randomUUID } = require('crypto');
+
 // Inicializa o cliente do Mercado Pago com o token do .env
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADO_PAGO_TOKEN,
@@ -23,29 +25,37 @@ async function gerarPixPagamento(id_whatsapp) {
     description: 'Pacote 20 Fotos com IA - Dampier Bot',
     payment_method_id: 'pix',
     payer: {
-      // Email obrigatorio pelo Mercado Pago; pode ser fixo para o MVP
       email: 'cliente@dampier.tech',
+      first_name: 'Cliente',
+      last_name: 'Dampier',
     },
-    // IMPORTANTE: external_reference vincula o pagamento ao usuario do WhatsApp
-    // O webhook usa esse campo para saber quem creditar
     external_reference: id_whatsapp,
-    // URL que o Mercado Pago chamara quando o pagamento for aprovado
     notification_url: process.env.WEBHOOK_PIX_URL,
   };
 
   console.log('[Payments] Gerando PIX para:', id_whatsapp);
-  const response = await payment.create({ body });
 
-  // O codigo PIX fica dentro de point_of_interaction
-  const pixCode =
-    response?.point_of_interaction?.transaction_data?.qr_code || null;
+  try {
+    const response = await payment.create({
+      body,
+      requestOptions: {
+        idempotencyKey: randomUUID(), // OBRIGATORIO no SDK v2 do Mercado Pago
+      },
+    });
 
-  console.log('[Payments] PIX gerado. ID:', response.id);
+    const pixCode =
+      response?.point_of_interaction?.transaction_data?.qr_code || null;
 
-  return {
-    id: String(response.id),
-    pixCode,
-  };
+    console.log('[Payments] PIX gerado com sucesso. ID:', response.id);
+
+    return {
+      id: String(response.id),
+      pixCode,
+    };
+  } catch (err) {
+    console.error('[Payments] Erro detalhado Mercado Pago:', err?.message || err);
+    throw err;
+  }
 }
 
 module.exports = { gerarPixPagamento };

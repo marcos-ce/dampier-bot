@@ -119,15 +119,20 @@ async function startBot() {
   });
 }
 
+// ─── Número(s) com geração ilimitada (admin) ─────────────────────────────────
+// Esses números nunca serão cobrados e nunca perdem crédito
+const ADMIN_NUMBERS = ['5588981125331'];
+
 // ─── Logica de processamento de mensagens ────────────────────────────────────
 
 async function processarMensagem(msg, jid, id_whatsapp) {
   const usuario = await db.getOrCreateUser(id_whatsapp);
   const messageContent = msg.message;
+  const isAdmin = ADMIN_NUMBERS.includes(id_whatsapp);
 
   // ── Acao A: Usuário enviou uma IMAGEM ──────────────────────────────────
   if (messageContent?.imageMessage) {
-    console.log('[Bot] Imagem recebida de:', id_whatsapp);
+    console.log('[Bot] Imagem recebida de:', id_whatsapp, isAdmin ? '(ADMIN)' : '');
 
     // Faz download da imagem
     const buffer = await downloadMediaMessage(msg, 'buffer', {});
@@ -156,34 +161,58 @@ async function processarMensagem(msg, jid, id_whatsapp) {
   if (CHAVES_VALIDAS.includes(texto) && usuario.step === 'CHOOSE_STYLE') {
     console.log('[Bot] Estilo escolhido por', id_whatsapp, ':', texto);
 
-    if (usuario.credits > 0) {
-      // Usuario tem creditos: gera a imagem!
-      await db.deductCredit(id_whatsapp);
+    // Admin tem crédito ilimitado — não desconta e não cobra
+    const temCredito = isAdmin || usuario.credits > 0;
+
+    if (temCredito) {
+      // Só desconta crédito se NÃO for admin
+      if (!isAdmin) {
+        await db.deductCredit(id_whatsapp);
+      }
       await db.setUserStep(id_whatsapp, 'IDLE');
 
       // Busca o saldo atualizado para informar ao usuario
       const usuarioAtualizado = await db.getOrCreateUser(id_whatsapp);
-      const saldoRestante = usuarioAtualizado.credits;
+      const saldoRestante = isAdmin ? '∞' : usuarioAtualizado.credits;
 
       await enviarTexto(jid, '🎨 *Pintando sua foto, aguarde...* Isso leva cerca de 30 segundos!');
 
-      const imageUrl = await gerarImagemEstilizada(usuario.temp_image, texto);
+      try {
+        const imageUrl = await gerarImagemEstilizada(usuario.temp_image, texto);
 
-      // Envia a imagem de volta pelo WhatsApp
-      const captionSaldo =
-        saldoRestante > 0
-          ? `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *${saldoRestante} foto(s)*\n\nEnvie outra foto para criar mais estilos! 😊`
-          : `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *0 fotos*\nPara criar mais fotos, recarregue com R$ 9,99 e ganhe *20 fotos!* 💳`;
+        // Envia a imagem de volta pelo WhatsApp
+        const captionSaldo = isAdmin
+          ? `✨ *Aqui está sua foto!*\n\n👑 Modo Admin — geração ilimitada ativa!`
+          : saldoRestante > 0
+            ? `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *${saldoRestante} foto(s)*\n\nEnvie outra foto para criar mais estilos! 😊`
+            : `✨ *Aqui está sua foto!*\n\n📊 Saldo restante: *0 fotos*\nPara criar mais fotos, recarregue com R$ 9,99 e ganhe *20 fotos!* 💳`;
 
-      await sock.sendMessage(jid, {
-        image: { url: imageUrl },
-        caption: captionSaldo,
-      });
-
+        await sock.sendMessage(jid, {
+          image: { url: imageUrl },
+          caption: captionSaldo,
+        });
+      } catch (err) {
+        console.error('[Bot] Erro ao gerar imagem na IA:', err);
+        // Devolve o crédito apenas se não for admin
+        if (!isAdmin) {
+          await db.addCredits(id_whatsapp, 1);
+        }
+        await enviarTexto(
+          jid,
+          '❌ Ops! Tivemos uma instabilidade rápida na IA ao processar sua foto.\n\n' +
+          '🎁 *Seu crédito foi devolvido!* Você não perdeu nada.\n' +
+          'Por favor, envie sua foto novamente!'
+        );
+      }
 
     } else {
       // Sem creditos: inicia o fluxo de pagamento
-      await iniciarPagamento(jid, id_whatsapp);
+      try {
+        await iniciarPagamento(jid, id_whatsapp);
+      } catch (err) {
+        console.error('[Bot] Erro ao gerar PIX:', err);
+        await enviarTexto(jid, '❌ Erro ao gerar o PIX. Por favor, tente novamente em instantes.');
+      }
     }
     return;
   }

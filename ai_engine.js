@@ -14,10 +14,8 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-// Modelo SDXL Lightning (rapido, 4 passos, alta qualidade)
-// Outros modelos disponíveis em: https://replicate.com/explore
-const MODEL =
-  'lucataco/sdxl-lightning-4step:727e49a643e999d602a896c774a0658ffefea21465756a6ce24b7ea4165fffb3';
+// Modelo SDXL oficial com suporte a transformação de foto (img2img)
+const MODEL = 'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
@@ -34,31 +32,35 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
   const prompt = estilo.prompt;
 
-
   // Le a foto e converte para base64 (necessario para enviar ao Replicate)
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString('base64');
   const ext = path.extname(imagePath).replace('.', '') || 'jpeg';
   const imageDataUri = `data:image/${ext};base64,${base64Image}`;
 
-  console.log('[AI] Enviando para Replicate. Estilo:', styleKey);
+  console.log('[AI] Enviando para Replicate (SDXL img2img). Estilo:', styleKey);
 
-  const output = await replicate.run(MODEL, {
-    input: {
-      prompt: prompt,
-      image: imageDataUri,           // Foto de referencia do usuario
-      num_inference_steps: 4,        // Rapido (Lightning)
-      guidance_scale: 0,
-      width: 1024,
-      height: 1024,
-    },
-  });
+  try {
+    const output = await replicate.run(MODEL, {
+      input: {
+        prompt: prompt,
+        image: imageDataUri,         // Foto real enviada pelo usuário
+        prompt_strength: 0.7,        // Transforma o estilo/roupa mantendo a fisionomia do rosto
+        num_inference_steps: 25,     // Alta qualidade
+        guidance_scale: 7.5,
+        width: 1024,
+        height: 1024,
+      },
+    });
 
-  // O Replicate retorna um array de URLs
-  const imageUrl = Array.isArray(output) ? output[0] : output;
-  console.log('[AI] Imagem gerada com sucesso:', imageUrl);
-
-  return imageUrl;
+    // O Replicate retorna um array de URLs
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    console.log('[AI] Imagem gerada com sucesso:', imageUrl);
+    return imageUrl;
+  } catch (err) {
+    console.error('[AI] Erro detalhado no Replicate:', err);
+    throw err;
+  }
 }
 
 module.exports = { gerarImagemEstilizada };
