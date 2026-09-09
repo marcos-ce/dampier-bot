@@ -385,8 +385,24 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         `📸 *Fotos geradas:* ${resumo.photos_generated}\n\n` +
         `📋 *Origem dos seus créditos:*\n` +
         origemLinhas.join('\n') + '\n\n' +
-        `_Para criar mais fotos, envie uma foto sua! 📸_`
+        (resumo.credits === 0
+          ? `⚠️ *Seu saldo está zerado!*\nRecarregue agora com R$ 9,99 e ganhe *20 fotos!* 👇`
+          : `_Para criar mais fotos, envie uma foto sua! 📸_`)
       );
+
+      // Se saldo zerado, já dispara o fluxo de pagamento automaticamente
+      if (resumo.credits === 0) {
+        try {
+          await iniciarPagamento(jid, id_whatsapp);
+        } catch (err) {
+          console.error('[Bot] Erro ao gerar PIX no saldo:', err);
+          if (isAdmin) {
+            await enviarTexto(jid, `⚠️ *[ERRO ADMIN]* Falha no Mercado Pago:\n\n_${err?.message || err}_`);
+          } else {
+            await enviarTexto(jid, '❌ Erro ao gerar o PIX. Tente novamente em instantes.');
+          }
+        }
+      }
     }
     return;
   }
@@ -426,16 +442,36 @@ async function processarMensagem(msg, jid, id_whatsapp) {
         '_Se ninguém te indicou, basta ignorar e enviar sua primeira foto para começar! 📸_'
       );
     } else {
-      await enviarTexto(
-        jid,
-        '👋 *Olá! O Dampier está pronto para criar mais fotos.* 🎨\n\n' +
-        '📸 *Como funciona:*\n' +
-        '1️⃣ Envie uma foto sua aqui.\n' +
-        '2️⃣ Escolha o estilo desejado.\n' +
-        '3️⃣ Receba sua foto transformada! ✨\n\n' +
-        '💰 _Dica: Digite *saldo* para ver seus créditos._\n\n' +
-        '👇 *Envie uma foto sua para começar!*'
-      );
+      // Usuário sem saldo: direciona direto para recarga
+      if (usuario.credits === 0) {
+        try {
+          await enviarTexto(
+            jid,
+            '👋 *Olá! Seu saldo está zerado.* 😔\n\n' +
+            'Para continuar criando fotos incríveis, recarregue com *R$ 9,99* e ganhe *20 fotos!* 🎨\n\n' +
+            '👇 Gerando seu PIX agora...'
+          );
+          await iniciarPagamento(jid, id_whatsapp);
+        } catch (err) {
+          console.error('[Bot] Erro ao gerar PIX na boas-vindas:', err);
+          if (isAdmin) {
+            await enviarTexto(jid, `⚠️ *[ERRO ADMIN]* Falha no Mercado Pago:\n\n_${err?.message || err}_`);
+          } else {
+            await enviarTexto(jid, '❌ Erro ao gerar o PIX. Tente novamente em instantes.');
+          }
+        }
+      } else {
+        await enviarTexto(
+          jid,
+          '👋 *Olá! O Dampier está pronto para criar mais fotos.* 🎨\n\n' +
+          '📸 *Como funciona:*\n' +
+          '1️⃣ Envie uma foto sua aqui.\n' +
+          '2️⃣ Escolha o estilo desejado.\n' +
+          '3️⃣ Receba sua foto transformada! ✨\n\n' +
+          '💰 _Dica: Digite *saldo* para ver seus créditos._\n\n' +
+          '👇 *Envie uma foto sua para começar!*'
+        );
+      }
     }
   }
 }
