@@ -24,14 +24,15 @@ const ESTILOS = {
     label: 'Roupa de Gala 👔',
 
     // Instrução em inglês para a IA — descreve roupa, cenário e iluminação
+    // IMPORTANTE: a palavra "img" é obrigatória — o PhotoMaker a usa para referenciar o rosto
     prompt: [
-      'A highly realistic cinematic portrait of a person wearing a formal black tuxedo',
+      'A photo of a img person wearing a formal black tuxedo',
       'with a white dress shirt and bow tie,',
       'luxury gala dinner event background,',
       'elegant ballroom with crystal chandeliers and golden decor,',
       'dignified and refined pose, natural skin texture,',
       'cinematic studio lighting, shallow depth of field,',
-      'photorealistic, ultra-detailed, 8k resolution, professional portrait photography',
+      'photorealistic, ultra-detailed, 8k resolution',
     ].join(' '),
   },
 
@@ -39,13 +40,13 @@ const ESTILOS = {
     label: 'Na Praia 🏖️',
 
     prompt: [
-      'A highly realistic cinematic portrait of a person at a tropical beach',
+      'A photo of a img person at a tropical beach',
       'wearing casual colorful summer clothes,',
       'beautiful white sand beach with crystal-clear blue ocean waves,',
       'coconut palm trees, golden hour sunlight,',
       'relaxed expression, natural skin texture, warm natural lighting,',
       'vibrant cheerful colors,',
-      'photorealistic, ultra-detailed, 8k resolution, travel lifestyle photography',
+      'photorealistic, ultra-detailed, 8k resolution',
     ].join(' '),
   },
 
@@ -53,23 +54,23 @@ const ESTILOS = {
     label: 'Estilo Fazenda 🤠',
 
     prompt: [
-      'A highly realistic cinematic portrait of a person dressed as a friendly country farmer,',
+      'A photo of a img person dressed as a friendly country farmer,',
       'rustic farm background with wooden fence, green pasture fields, clear blue sky,',
       'wearing a wide brim straw hat, plaid flannel shirt, denim jeans and boots,',
       'warm cheerful smile, natural skin texture, golden afternoon lighting,',
-      'photorealistic, ultra-detailed, 8k resolution, countryside lifestyle photography',
+      'photorealistic, ultra-detailed, 8k resolution',
     ].join(' '),
   },
 
   '4': {
     label: 'Retrô Anos 80 📼',
     prompt: [
-      'A highly realistic vintage 1980s polaroid photo portrait of a person,',
+      'A photo of a img person in a vintage 1980s setting,',
       'wearing authentic 1980s retro fashion, denim jacket and colorful patterned shirt,',
       'vintage 80s photo studio background,',
       'retro hairstyle, natural skin texture, nostalgic mood,',
       'film grain, light leaks, soft vintage studio lighting,',
-      'photorealistic, ultra-detailed, 8k resolution, 1980s photography',
+      'photorealistic, ultra-detailed, 8k resolution',
     ].join(' '),
   },
 

@@ -13,10 +13,10 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-// Modelo face-to-many — especialista em transformar rosto de uma pessoa em qualquer estilo.
-// Muito mais estável e realista que o InstantID para este caso de uso.
-// Documentação: https://replicate.com/fofr/face-to-many
-const MODEL = 'fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf';
+// Modelo PhotoMaker (TencentARC) — fotorrealismo com preservação de identidade facial.
+// Usado por apps profissionais. Exige a palavra "img" nos prompts para referenciar o rosto.
+// Documentação: https://replicate.com/tencentarc/photomaker
+const MODEL = 'tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695d0847266a3c4f9f7d66fbc30';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
@@ -41,19 +41,19 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
     const output = await replicate.run(MODEL, {
       input: {
-        image: imageBuffer,
+        input_image: imageBuffer,
         prompt: prompt,
-        negative_prompt: "3d render, cartoon, anime, caricature, plastic, CGI, painting, drawing, illustration, deformed, ugly, disfigured, blurry, lowres, extra limbs",
-        style: 'Photographic', // Força o modo fotográfico (mais realista)
-        number_of_images: 1,
-        guidance_scale: 7.5,
-        ip_adapter_scale: 0.8, // Fidelidade ao rosto: 0.8 é o ponto ideal entre rosto e estilo
-        lcm_num_inference_steps: 6, // Steps do LCM — bem mais rápido que o DDIM do InstantID
-        disable_safety_checker: true, // Evita falsos positivos que travam a geração
+        negative_prompt: "cartoon, anime, caricature, plastic, CGI, painting, drawing, illustration, deformed, ugly, disfigured, blurry, lowres, extra limbs, bad anatomy",
+        style_name: 'Photographic (Default)',
+        num_steps: 20,
+        style_strength_ratio: 20,
+        guidance_scale: 5,
+        num_outputs: 1,
+        disable_safety_checker: true,
       },
     });
 
-    // O Replicate retorna um array de URLs ou um FileOutput
+    // PhotoMaker retorna array de URLs de imagem
     let imageUrl;
     if (Array.isArray(output)) {
       imageUrl = typeof output[0] === 'string' ? output[0] : await output[0]?.url?.();
