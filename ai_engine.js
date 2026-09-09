@@ -16,7 +16,7 @@ const replicate = new Replicate({
 // Modelo PhotoMaker (TencentARC) — fotorrealismo com preservação de identidade facial.
 // Usado por apps profissionais. Exige a palavra "img" nos prompts para referenciar o rosto.
 // Documentação: https://replicate.com/tencentarc/photomaker
-const MODEL = 'tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695d0847266a3c4f9f7d66fbc30';
+const MODEL = 'tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
