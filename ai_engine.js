@@ -13,10 +13,9 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-// Modelo PhotoMaker (TencentARC) — fotorrealismo com preservação de identidade facial.
-// Usado por apps profissionais. Exige a palavra "img" nos prompts para referenciar o rosto.
-// Documentação: https://replicate.com/tencentarc/photomaker
-const MODEL = 'tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4';
+// Modelo InstantID — o melhor equilíbrio entre preservação facial e estilização.
+// Voltamos a ele com prompts corrigidos e parâmetros otimizados para máxima fidelidade.
+const MODEL = 'zsxkib/instant-id:2e4785a4d80dadf580077b2244c8d7c05d8e3faac04a04c02d8e099dd2876789';
 
 /**
  * Gera uma imagem estilizada usando o Replicate.
@@ -33,7 +32,7 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
   const prompt = estilo.prompt;
 
-  console.log(`[AI] Iniciando geracao face-to-many. Estilo: ${styleKey} | Prompt: ${prompt}`);
+  console.log(`[AI] Iniciando geracao InstantID. Estilo: ${styleKey} | Prompt: ${prompt}`);
   console.log('[AI] Arquivo:', imagePath, '| Tamanho:', fs.statSync(imagePath).size, 'bytes');
 
   try {
@@ -41,19 +40,21 @@ async function gerarImagemEstilizada(imagePath, styleKey) {
 
     const output = await replicate.run(MODEL, {
       input: {
-        input_image: imageBuffer,
+        image: imageBuffer,
         prompt: prompt,
-        negative_prompt: "cartoon, anime, caricature, plastic, CGI, painting, drawing, illustration, deformed, ugly, disfigured, blurry, lowres, extra limbs, bad anatomy",
-        style_name: 'Photographic (Default)',
-        num_steps: 20,
-        style_strength_ratio: 20,
-        guidance_scale: 5,
-        num_outputs: 1,
+        negative_prompt: "cartoon, anime, caricature, plastic, CGI, painting, drawing, illustration, deformed, ugly, disfigured, blurry, lowres, 3d render, different face, different person",
+        sdxl_weights: "juggernaut-xl-v8",
+        width: 1024,
+        height: 1024,
+        num_inference_steps: 30,
+        guidance_scale: 3,              // Baixo = menos influência do texto, mais fidelidade ao rosto
+        ip_adapter_scale: 0.9,          // Alto = mais preservação da identidade facial
+        controlnet_conditioning_scale: 0.9, // Alto = mais controle da estrutura facial
         disable_safety_checker: true,
       },
     });
 
-    // PhotoMaker retorna array de URLs de imagem
+    // O Replicate retorna um array de URLs ou um FileOutput
     let imageUrl;
     if (Array.isArray(output)) {
       imageUrl = typeof output[0] === 'string' ? output[0] : await output[0]?.url?.();

@@ -26,7 +26,7 @@ const ESTILOS = {
     // Instrução em inglês para a IA — descreve roupa, cenário e iluminação
     // IMPORTANTE: a palavra "img" é obrigatória — o PhotoMaker a usa para referenciar o rosto
     prompt: [
-      'A photo of a img person wearing a formal black tuxedo',
+      'A photo of a person wearing a formal black tuxedo',
       'with a white dress shirt and bow tie,',
       'luxury gala dinner event background,',
       'elegant ballroom with crystal chandeliers and golden decor,',
@@ -40,7 +40,7 @@ const ESTILOS = {
     label: 'Na Praia 🏖️',
 
     prompt: [
-      'A photo of a img person at a tropical beach',
+      'A photo of a person at a tropical beach',
       'wearing casual colorful summer clothes,',
       'beautiful white sand beach with crystal-clear blue ocean waves,',
       'coconut palm trees, golden hour sunlight,',
@@ -54,7 +54,7 @@ const ESTILOS = {
     label: 'Estilo Fazenda 🤠',
 
     prompt: [
-      'A photo of a img person dressed as a friendly country farmer,',
+      'A photo of a person dressed as a friendly country farmer,',
       'rustic farm background with wooden fence, green pasture fields, clear blue sky,',
       'wearing a wide brim straw hat, plaid flannel shirt, denim jeans and boots,',
       'warm cheerful smile, natural skin texture, golden afternoon lighting,',
@@ -65,7 +65,7 @@ const ESTILOS = {
   '4': {
     label: 'Retrô Anos 80 📼',
     prompt: [
-      'A photo of a img person in a vintage 1980s setting,',
+      'A photo of a person in a vintage 1980s setting,',
       'wearing authentic 1980s retro fashion, denim jacket and colorful patterned shirt,',
       'vintage 80s photo studio background,',
       'retro hairstyle, natural skin texture, nostalgic mood,',
