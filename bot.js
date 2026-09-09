@@ -131,12 +131,39 @@ const ADMIN_NUMBERS = [
   '138333061685351' // ID gerado pelo WhatsApp (visto no !id)
 ];
 
+// ─── Set para desativar admin temporariamente ─────────────────────────────────
+const disabledAdmins = new Set();
+
 // ─── Logica de processamento de mensagens ────────────────────────────────────
 
 async function processarMensagem(msg, jid, id_whatsapp) {
   const usuario = await db.getOrCreateUser(id_whatsapp);
   const messageContent = msg.message;
-  const isAdmin = ADMIN_NUMBERS.includes(id_whatsapp);
+  
+  // Extrai o texto da mensagem antecipadamente para processar comandos
+  const texto = (
+    messageContent?.conversation ||
+    messageContent?.extendedTextMessage?.text ||
+    ''
+  ).trim();
+
+  // Verifica se o usuário pertence à lista de admins raiz
+  const isRootAdmin = ADMIN_NUMBERS.includes(id_whatsapp);
+
+  // Comandos para ativar/desativar o status de admin
+  if (isRootAdmin && texto === '!admin off') {
+    disabledAdmins.add(id_whatsapp);
+    await enviarTexto(jid, '⚠️ *Modo Admin DESATIVADO*.\nAgora você é um usuário comum (gasta saldo e vê o PIX). Para voltar, digite `!admin on`.');
+    return;
+  }
+  if (isRootAdmin && texto === '!admin on') {
+    disabledAdmins.delete(id_whatsapp);
+    await enviarTexto(jid, '👑 *Modo Admin ATIVADO*.\nGeração ilimitada restaurada!');
+    return;
+  }
+
+  // O isAdmin final considera se o admin não está desativado
+  const isAdmin = isRootAdmin && !disabledAdmins.has(id_whatsapp);
 
   // ── Acao A: Usuário enviou uma IMAGEM ──────────────────────────────────
   if (messageContent?.imageMessage) {
@@ -176,11 +203,7 @@ async function processarMensagem(msg, jid, id_whatsapp) {
   }
 
   // ── Acao B: Usuário enviou um NUMERO valido ────────────────────────────────
-  const texto = (
-    messageContent?.conversation ||
-    messageContent?.extendedTextMessage?.text ||
-    ''
-  ).trim();
+  // (A variavel texto ja foi extraida no topo da funcao)
 
   // ── Acao ADMIN: Comandos exclusivos do admin ───────────────────────────────
   // Uso: !add 20 5511999999999  → adiciona 20 créditos ao número
